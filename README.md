@@ -2,6 +2,9 @@
 
 An AI-powered Resume Analyzer built using React, Express.js, and Google's Gemini API. The application allows users to upload a PDF resume, compare it against a job description, and receive AI-generated feedback including ATS score estimation, skill gap analysis, strengths, weaknesses, and improvement suggestions.
 
+# LIVE DEMO
+ ai-resume-analyser1.pages.dev
+
 ## Features
 
 * Upload resumes in PDF format
