@@ -1,106 +1,105 @@
 require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
-const fs = require("fs");
 const pdf = require("pdf-parse");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-
 const app = express();
-const genAI =
-  new GoogleGenerativeAI(
-    process.env.GEMINI_API_KEY
-  );
-
-const model =
-  genAI.getGenerativeModel({
-    model: "gemini-2.5-flash"
-  });
 
 app.use(cors());
 app.use(express.json());
 
-// Configure file storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
+const genAI = new GoogleGenerativeAI(
+  process.env.GEMINI_API_KEY
+);
 
-  filename: (req, file, cb) => {
-    const uniqueFileName =
-      Date.now() + "-" + file.originalname;
-
-    cb(null, uniqueFileName);
-  }
+const model = genAI.getGenerativeModel({
+  model: "gemini-2.5-flash"
 });
+
+// MEMORY STORAGE (No uploads folder needed)
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage
 });
 
-// Test route
+// Test Route
 app.get("/", (req, res) => {
   res.json({
     message: "Backend is running"
   });
 });
 
+// =====================
 // PDF Upload Route
-app.post("/upload", upload.single("resume"), async (req, res) => {
-  try {
+// =====================
 
-    // Check if file exists
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "No file uploaded"
+app.post(
+  "/upload",
+  upload.single("resume"),
+  async (req, res) => {
+    try {
+
+      console.log("UPLOAD ROUTE HIT");
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: "No file uploaded"
+        });
+      }
+
+      console.log(
+        "File received:",
+        req.file.originalname
+      );
+
+      const pdfData = await pdf(
+        req.file.buffer
+      );
+
+      console.log(
+        "PDF parsed successfully"
+      );
+
+      res.json({
+        success: true,
+        fileName:
+          req.file.originalname,
+        extractedText:
+          pdfData.text
       });
+
+    } catch (error) {
+
+      console.error(
+        "PDF Processing Error:",
+        error
+      );
+
+      res.status(500).json({
+        success: false,
+        message:
+          "Failed to process PDF"
+      });
+
     }
-
-    console.log("\n===== PDF RECEIVED =====");
-    console.log("Original Name:", req.file.originalname);
-    console.log("Saved Name:", req.file.filename);
-    console.log("========================\n");
-
-    // Read uploaded PDF
-    const pdfBuffer = fs.readFileSync(req.file.path);
-
-    // Extract text from PDF
-    const pdfData = await pdf(pdfBuffer);
-
-    console.log("\n===== EXTRACTED TEXT =====");
-    console.log(pdfData.text.substring(0, 500));
-    console.log("==========================\n");
-
-    res.json({
-      success: true,
-      fileName: req.file.originalname,
-      extractedText: pdfData.text
-    });
-
-  } catch (error) {
-
-    console.error("PDF Processing Error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to process PDF"
-    });
-
   }
-});
+);
+
+// =====================
+// ATS ANALYSIS
+// =====================
+
 app.post("/analyze", (req, res) => {
 
-  const { resumeText, jobDescription } = req.body;
-  console.log("===== ANALYZE REQUEST =====");
-console.log("Job Description:");
-console.log(jobDescription);
-
-console.log("\nResume Text:");
-console.log(resumeText.substring(0, 500));
-
-console.log("==========================");
+  const {
+    resumeText,
+    jobDescription
+  } = req.body;
 
   const skills = [
     "javascript",
@@ -166,16 +165,23 @@ console.log("==========================");
   });
 
 });
-app.post("/ai-analyze", async (req, res) => {
 
-  try {
+// =====================
+// AI ANALYSIS
+// =====================
 
-    const {
-      resumeText,
-      jobDescription
-    } = req.body;
+app.post(
+  "/ai-analyze",
+  async (req, res) => {
 
-    const prompt = `
+    try {
+
+      const {
+        resumeText,
+        jobDescription
+      } = req.body;
+
+      const prompt = `
 You are a professional ATS system.
 
 Compare the resume against the job description.
@@ -201,32 +207,39 @@ Job Description:
 ${jobDescription}
 `;
 
-    const result =
-      await model.generateContent(
-        prompt
-      );
+      const result =
+        await model.generateContent(
+          prompt
+        );
 
-    const analysis =
-      result.response.text();
+      const analysis =
+        result.response.text();
 
-    res.json({
-      success: true,
-      analysis
-    });
+      res.json({
+        success: true,
+        analysis
+      });
 
-  } catch (error) {
+    } catch (error) {
 
-    console.error(error);
+      console.error(error);
 
-    res.status(500).json({
-      success: false,
-      message: "AI Analysis Failed"
-    });
+      res.status(500).json({
+        success: false,
+        message:
+          "AI Analysis Failed"
+      });
+
+    }
 
   }
+);
 
-});
+const PORT =
+  process.env.PORT || 3000;
 
-app.listen(3000, () => {
-  console.log("Server running on port 3000");
+app.listen(PORT, () => {
+  console.log(
+    `Server running on port ${PORT}`
+  );
 });
