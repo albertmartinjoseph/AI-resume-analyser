@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Uploaded resumes
+uploads/
+
+# Build files
+dist/
+
+# Environment variables
+.env
+
+# Logs
+*.log
