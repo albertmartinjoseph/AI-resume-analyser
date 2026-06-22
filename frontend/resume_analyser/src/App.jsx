@@ -42,7 +42,7 @@ const [isAnalyzing, setIsAnalyzing] = useState(false);
       setIsUploading(true);
 
       const response = await fetch(
-        "http://localhost:3000/upload",
+        "https://ai-resume-analyzer-backend-0jor.onrender.com/upload",
         {
           method: "POST",
           body: formData,
@@ -75,7 +75,7 @@ const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const response =
       await fetch(
-        "http://localhost:3000/ai-analyze",
+        "https://ai-resume-analyzer-backend-0jor.onrender.com/ai-analyze",
         {
           method: "POST",
 
